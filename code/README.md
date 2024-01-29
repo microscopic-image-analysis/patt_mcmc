@@ -1,7 +1,6 @@
-### Overview of the Code Base
+### Overview of Code Base and Experiments
 
-This directory contains all the source code belonging to the paper
-"Parallel Affine Transformation Tuning of Markov Chain Monte Carlo".
+This directory contains all the source code belonging to the paper.
 
 The experiments presented in the paper, as well as two that were cut for space,
 are each organized as a single Jupyter notebook. To look at them, it should be

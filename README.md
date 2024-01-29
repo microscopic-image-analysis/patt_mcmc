@@ -1,7 +1,7 @@
 ### Parallel Affine Transformation Tuning of MCMC
 
 This directory contains all source code, data sets and plots related to the
-paper **Parallel Affine Transformation Tuning of Markov Chain Monte Carlo**,
+paper *Parallel Affine Transformation Tuning of Markov Chain Monte Carlo*,
 presently submitted for review.
 
 The directory $\texttt{code}$ contains the entire code base used to run the
