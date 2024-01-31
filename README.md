@@ -2,7 +2,8 @@
 
 This directory contains all source code, data sets and plots related to the
 paper *Parallel Affine Transformation Tuning of Markov Chain Monte Carlo*,
-presently submitted for review.
+presently submitted for review, with a preprint available as
+[arXiv:2401.16567](https://arxiv.org/abs/2401.16567).
 
 The directory $\texttt{code}$ contains the entire code base used to run the
 experiments (consisting of various python modules) as well as the experiments
