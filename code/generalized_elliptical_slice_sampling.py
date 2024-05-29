@@ -130,6 +130,7 @@ def two_group_gess(
         n_its,
         x_0s,
         n_ibu=None,
+        n_thr=None,
         bar=True,
         verbose=True
     ):
@@ -156,6 +157,8 @@ def two_group_gess(
                 parameters of the multivariate t-distribution approximation to
                 the target distribution, must be positive integer; if left None,
                 it will be chosen as n_ibu = max(d,25) * n_chains / 10
+            n_thr: number of parallel threads to use, must be positive integer;
+                if left None, n_chains parallel threads will be used
             bar: bool denoting whether or not a progress bar should be displayed
                 during the sampling procedure
             verbose: bool denoting whether or not to print various status
@@ -212,7 +215,10 @@ def two_group_gess(
         pb = tqdm(total=2*(n_ipc+1), position=0, leave=True)
         pb.update(2)
     # initialize process pool
-    pool = mp.Pool(n_chains)
+    if n_thr != None:
+        pool = mp.Pool(n_thr)
+    else:
+        pool = mp.Pool(n_chains)
     # run the sampling procedure
     for k in range(1, n_updates):
         # update group 1

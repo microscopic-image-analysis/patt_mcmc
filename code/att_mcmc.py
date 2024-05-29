@@ -26,6 +26,7 @@ import numpy as np
 import numpy.random as rnd
 import numpy.linalg as alg
 import multiprocessing as mp
+import time as tm
 from tqdm import tqdm # tqdm.notebook.tqdm would look nicer but is incompatible
 # with the multiprocessing module
 
@@ -51,9 +52,9 @@ def att_mcmc(
         verbose=True,
     ):
     """Provides a general template for affine transformation tuning of MCMC,
-        with the underlying plain sampler, the types of transformation parameter
-        choices and the update schedule all being free to choose. Naive paral-
-        lelization is enabled by passing an RNG to the function.
+        with the base sampler, the types of transformation parameter choices
+        and the update schedule all being free to choose. Naive parallelization
+        is enabled by passing an RNG to the function.
 
         Args:
             log_density: log of the target density, must be a function taking
@@ -82,7 +83,7 @@ def att_mcmc(
                 - medi, medi+var, medi+cov: s_k = floor(1.5**(k+16))
                 For the user's convenience, an automatically generated schedule 
                 will be added to the return dictionary.
-            sampler: underlying plain sampler, must take as arguments (in this
+            sampler: underlying base sampler, must take as arguments (in this
                 order!)
                 - log density
                 - number of iterations to perform
@@ -93,12 +94,13 @@ def att_mcmc(
                 - the samples it generated (2d np array)
                 - the RNG in its latest state
                 - the target density evaluation counts (1d np array)
+                - the iteration-wise runtimes (1d np array)
                 If this argument is set to None, Gibbsian polar slice sampling 
                 will be used as the default sampler. If no value for its 
                 hyperparameter is provided, the parameter will be set to one.
-            hyper_burn: hyperparameter(s) of the plain sampler to be used during
+            hyper_burn: hyperparameter(s) of the base sampler to be used during
                 initialization burn-in period, leave as None if there aren't any
-            hyper_att: hyperparameter(s) of the plain sampler to be used during
+            hyper_att: hyperparameter(s) of the base sampler to be used during
                 ATT period, leave as None if there aren't any
             gen: instance of rnd.Generator to be used for pseudo-random number
                 generation during sampling
@@ -150,6 +152,7 @@ def att_mcmc(
         X_b = ret[0]
         gen = ret[1]
         tde_cnts_burn = ret[2]
+        runtimes_burn = ret[3]
     if verbose:
         print("Preparing for ATT sampling...")
     # if no schedule was given, construct default schedule
@@ -177,12 +180,10 @@ def att_mcmc(
     if cen_mode == "medi":
         z = np.zeros((n_updates,d))
     if cov_mode == "var":
-        p = np.zeros((n_updates,d))
-        p[0] = X[0]**2
+        q = np.zeros((n_updates,d))
         dev = np.zeros((n_updates,d))
     elif cov_mode == "cov":
         Q = np.zeros((n_updates,d,d))
-        Q[0] = np.outer(X[0], X[0])
         Sig = np.zeros((n_updates,d,d))
         L = np.zeros((n_updates,d,d))
         L_inv = np.zeros((n_updates,d,d))
@@ -193,6 +194,7 @@ def att_mcmc(
     alpha_inv = inv_affine_trf(cen_para, inv_cov_para)
     log_den_trd = lambda y: log_density(alpha(y))
     tde_cnts = np.zeros(n_its+1, dtype=int)
+    runtimes = np.zeros(n_its+1)
     if verbose:
         print("Starting ATT sampling...")
     # create progress bar
@@ -202,18 +204,23 @@ def att_mcmc(
         pb.update(1)
     # run the sampling procedure
     for k in range(1, n_updates):
+        time_b = tm.time()
         y_old = alpha_inv(X[s[k-1]-1])
+        time_a = tm.time()
+        runtimes[s[k-1]] += time_a - time_b
         if hyper_att == None:
             ret = sampler(log_den_trd, s[k]-s[k-1], y_old, gen)
         else:
             ret = sampler(log_den_trd, s[k]-s[k-1], y_old, hyper_att, gen)
+        time_b = tm.time()
         Y = ret[0][1:]
         X[s[k-1]:s[k]] = np.apply_along_axis(alpha, -1, Y)
         gen = ret[1]
         tde_cnts[s[k-1]:s[k]] = ret[2][1:]
+        runtimes[s[k-1]:s[k]] += ret[3][1:]
         # update transformation params
         if cen_mode == "mean" or cov_mode != None:
-            m[k] = (s[k-1] * m[k-1] + np.sum(X[s[k-1]:s[k]], axis=0)) / s[k]
+            m[k] = m[k-1] + np.sum(X[s[k-1]:s[k]] - m[k-1], axis=0) / s[k]
             if cen_mode == "mean":
                 cen_para = m[k]
         if cen_mode == "medi":
@@ -221,14 +228,15 @@ def att_mcmc(
             z[k] = np.median(X[:s[k]], axis=0)
             cen_para = z[k]
         if cov_mode == "var":
-            p[k] = p[k-1] + np.sum(X[s[k-1]:s[k]]**2, axis=0)
-            dev[k] = np.sqrt(p[k]/(s[k]-1) - s[k]/(s[k]-1) * m[k]**2)
+            q[k] = q[k-1] + np.sum( (X[s[k-1]:s[k]] - m[k-1]) \
+                * (X[s[k-1]:s[k]] - m[k]), axis=0)
+            dev[k] = np.sqrt(q[k] / (s[k]-1))
             cov_para = dev[k]
             inv_cov_para = 1 / dev[k]
         elif cov_mode == "cov":
-            Q[k] = Q[k-1] \
-                + np.einsum("ij,ik->jk", X[s[k-1]:s[k]], X[s[k-1]:s[k]])
-            Sig[k] = Q[k]/(s[k]-1) - s[k]/(s[k]-1) * np.outer(m[k], m[k])
+            Q[k] = Q[k-1] + np.einsum("ij,ik->jk", X[s[k-1]:s[k]] - m[k-1], \
+                X[s[k-1]:s[k]] - m[k])
+            Sig[k] = Q[k] / (s[k]-1)
             L[k] = alg.cholesky(Sig[k])
             L_inv[k] = alg.inv(L[k])
             cov_para = L[k]
@@ -236,6 +244,8 @@ def att_mcmc(
         alpha = affine_trf(cen_para, cov_para)
         alpha_inv = inv_affine_trf(cen_para, inv_cov_para)
         log_den_trd = lambda y: log_density(alpha(y))
+        time_a = tm.time()
+        runtimes[s[k]-1] += time_a - time_b
         if bar:
             pb.update(s[k]-s[k-1])
     if verbose:
@@ -244,8 +254,10 @@ def att_mcmc(
     if n_burn > 0:
         ret_dic['burn-in'] = X_b
         ret_dic['tde_cnts_burn'] = tde_cnts_burn
+        ret_dic['runtimes_burn'] = runtimes_burn
     ret_dic['samples'] = X
     ret_dic['tde_cnts'] = tde_cnts
+    ret_dic['runtimes'] = runtimes
     if cen_mode == "mean" or cov_mode != None:
         ret_dic['means'] = m
     if cen_mode == "medi":
@@ -570,7 +582,7 @@ def npatt_mcmc(
         verbose=True,
     ):
     """Provides a general template for naively parallelized affine transforma-
-        tion tuning (NPATT) of MCMC, with the underlying plain sampler, the
+        tion tuning (NPATT) of MCMC, with the underlying base sampler, the
         types of transformation parameter choices and the update schedule all
         being free to choose.
 
@@ -603,7 +615,7 @@ def npatt_mcmc(
                 - medi, medi+var, medi+cov: s_k = floor(1.5**(k+16))
                 For the user's convenience, an automatically generated schedule 
                 will be added to the return dictionary.
-            sampler: underlying plain sampler, must take as arguments (in this
+            sampler: underlying base sampler, must take as arguments (in this
                 order!)
                 - log density
                 - number of iterations to perform
@@ -614,12 +626,13 @@ def npatt_mcmc(
                 - the samples it generated (2d np array)
                 - the RNG in its latest state
                 - the target density evaluation counts (1d np array)
+                - the iteration-wise runtimes (1d np array)
                 If this argument is set to None, Gibbsian polar slice sampling 
                 will be used as the default sampler. If no value for its 
                 hyperparameter is provided, the parameter will be set to one.
-            hyper_burn: hyperparameter(s) of the plain sampler to be used during
+            hyper_burn: hyperparameter(s) of the base sampler to be used during
                 initialization burn-in period, leave as None if there aren't any
-            hyper_att: hyperparameter(s) of the plain sampler to be used during
+            hyper_att: hyperparameter(s) of the base sampler to be used during
                 ATT period, leave as None if there aren't any
             bar: bool denoting whether or not a progress bar should be displayed
                 during the sampling procedure (for practical reasons, the 
@@ -654,9 +667,12 @@ def npatt_mcmc(
             for ret in returns]), axes=(1,0,2))
         ret_dic['tde_cnts_burn'] = np.array([ret['tde_cnts_burn']
             for ret in returns]).T
+        ret_dic['runtimes_burn'] = np.array([ret['runtimes_burn']
+            for ret in returns]).T
     ret_dic['samples'] = np.transpose(np.array([ret['samples']
         for ret in returns]), axes=(1,0,2))
     ret_dic['tde_cnts'] = np.array([ret['tde_cnts'] for ret in returns]).T
+    ret_dic['runtimes'] = np.array([ret['runtimes'] for ret in returns]).T
     if cen_mode == "mean" or cov_mode != None:
         ret_dic['means'] = np.array([ret['means'] for ret in returns])
     if cen_mode == "medi":

@@ -12,6 +12,8 @@ Available functions:
     trace_plot_row
     plot_tde_distr
     plot_tde_distr_row
+    plot_runtime_hist
+    plot_runtime_hist_row
     plot_step_hist
     plot_step_hist_row
     plot_ada_progress
@@ -63,6 +65,12 @@ def bin_gen(nbins, nvals):
     if nbins != None:
         return nbins
     return np.max([nvals//1000, 1])
+
+def bin_gen_2(nbins, nvals):
+    """Auxiliary function, not to be called by the user"""
+    if nbins != None:
+        return nbins
+    return np.max([nvals//10000, 1])
 
 ################################################################################
 ################################ User Functions ################################
@@ -341,6 +349,73 @@ def plot_tde_distr_row(
         axes[i].set_title(snames[i])
         evals, cum_cnts = np.unique(tde_cnts[i], return_counts=True)
         axes[i].bar(evals, cum_cnts / np.sum(cum_cnts), width=0.5)
+    wrapup(filepath)
+
+def plot_runtime_hist(
+        runtimes,
+        figsize=(3,2),
+        dpi=100,
+        title=None,
+        filepath=None,
+        nbins=None,
+        cutoff_quant=0.999,
+    ):
+    """Plots a histogram of iteration-wise runtimes in microseconds.
+
+        Args:
+            runtimes: the runtimes, must be np array (of arbitrary shape)
+                containing non-negative floats
+            figsize: 2-tuple giving the figure's size
+            dpi: dots per inch used for plotting
+            title: the figure title, by default there is none
+            filepath: location to save plot to, leave default to not save it
+            nbins: number of bins to be used, by default the number will be set
+                so that the average bin contains 10,000 elements
+            cutoff_quant: quantile after which to cut off the histogram
+    """
+    flat_times = 1e6 * runtimes.reshape(-1) # convert times into microseconds
+    nbins = bin_gen_2(nbins, flat_times.shape[0])
+    max_time = np.quantile(flat_times, cutoff_quant)
+    initiate(figsize, dpi, title)
+    plt.hist(flat_times, bins=nbins, range=(0,max_time))
+    wrapup(filepath)
+
+def plot_runtime_hist_row(
+        runtimes,
+        snames,
+        spsize=(3,2),
+        dpi=100,
+        title=None,
+        filepath=None,
+        nbins=None,
+        cutoff_quant=0.999,
+    ):
+    """Plots a row of histograms of iteration-wise runtimes in microseconds.
+
+        Args:
+            runtimes: the runtimes, must be list of np arrays (of arbitrary
+                shape) containing non-negative floats
+            figsize: 2-tuple giving the figure's size
+            dpi: dots per inch used for plotting
+            title: the figure title, by default there is none
+            filepath: location to save plot to, leave default to not save it
+            nbins: number of bins to be used, by default the number will be set
+                so that the average bin contains 10,000 elements
+            cutoff_quant: quantile after which to cut off each histogram
+    """
+    nsam = len(snames)
+    figsize = (nsam * spsize[0], spsize[1])
+    fig = plt.figure(figsize=figsize, dpi=dpi, constrained_layout=True)
+    axes = fig.subplots(nrows=1, ncols=nsam)
+    if title != None:
+        plt.title(title)
+    for i in range(nsam):
+        flat_times = 1e6 * runtimes[i].reshape(-1) # convert times into microsec
+        nbins = bin_gen_2(nbins, flat_times.shape[0])
+        max_time = np.quantile(flat_times, cutoff_quant)
+        axes[i].set_title(snames[i])
+        axes[i].hist(flat_times, bins=nbins, range=(0,max_time))
+        axes[i].set_xlim(0,max_time)
     wrapup(filepath)
 
 def plot_step_hist(

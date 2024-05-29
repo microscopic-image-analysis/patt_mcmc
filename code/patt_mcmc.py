@@ -16,6 +16,7 @@ import numpy as np
 import numpy.random as rnd
 import numpy.linalg as alg
 import multiprocessing as mp
+import time as tm
 from tqdm.notebook import tqdm
 
 from affine_transformations import affine_trf, inv_affine_trf
@@ -51,8 +52,8 @@ def patt_mcmc(
         verbose=True,
     ):
     """Provides a general template for parallel affine transformation tuning of
-        MCMC, with the underlying plain sampler, the types of transformation
-        parameter choices and the update schedule all being free to choose.
+        MCMC, with the base sampler, the types of transformation parameter
+        choices and the update schedule all being free to choose.
 
         Args:
             log_density: log of the target density, must be a function taking
@@ -83,7 +84,7 @@ def patt_mcmc(
                 - medi, medi+var, medi+cov: s_k = floor(1.5**(k+16))
                 For the user's convenience, an automatically generated schedule 
                 will be added to the return dictionary.
-            sampler: underlying plain sampler, must take as arguments (in this
+            sampler: underlying base sampler, must take as arguments (in this
                 order!)
                 - log density
                 - number of iterations to perform
@@ -94,12 +95,13 @@ def patt_mcmc(
                 - the samples it generated (2d np array)
                 - the RNG in its latest state
                 - the target density evaluation counts (1d np array)
+                - the iteration-wise runtimes (1d np array)
                 If this argument is set to None, Gibbsian polar slice sampling 
                 will be used as the default sampler. If no value for its 
                 hyperparameter is provided, the parameter will be set to one.
-            hyper_burn: hyperparameter(s) of the plain sampler to be used during
+            hyper_burn: hyperparameter(s) of the base sampler to be used during
                 initialization burn-in period, leave as None if there aren't any
-            hyper_att: hyperparameter(s) of the plain sampler to be used during
+            hyper_att: hyperparameter(s) of the base sampler to be used during
                 ATT period, leave as None if there aren't any
             bar: bool denoting whether or not a progress bar should be displayed
                 during the sampling procedure
@@ -165,6 +167,7 @@ def patt_mcmc(
         X_b = np.transpose(np.array([ret[0] for ret in returns]), axes=(1,0,2))
         gens = [ret[1] for ret in returns]
         tde_cnts_burn = np.array([ret[2] for ret in returns]).T
+        runtimes_burn = np.array([ret[3] for ret in returns]).T
     if verbose:
         print("Preparing for ATT sampling...")
     # if no schedule was given, construct default schedule
@@ -192,12 +195,12 @@ def patt_mcmc(
     if cen_mode == "medi":
         z = np.zeros((n_updates,d))
     if cov_mode == "var":
-        p = np.zeros((n_updates,d))
-        p[0] = np.sum(X[0]**2, axis=0)
+        q = np.zeros((n_updates,d))
+        q[0] = np.sum((X[0]-m[0])**2, axis=0)
         dev = np.zeros((n_updates,d))
     elif cov_mode == "cov":
         Q = np.zeros((n_updates,d,d))
-        Q[0] = np.einsum("ij,ik->jk", X[0], X[0])
+        Q[0] = np.einsum("ij,ik->jk", X[0]-m[0], X[0]-m[0])
         Sig = np.zeros((n_updates,d,d))
         L = np.zeros((n_updates,d,d))
         L_inv = np.zeros((n_updates,d,d))
@@ -208,6 +211,7 @@ def patt_mcmc(
     alpha_inv = inv_affine_trf(cen_para, inv_cov_para)
     log_den_trd = target_trf(log_density, alpha)
     tde_cnts = np.zeros((n_its+1, n_chains), dtype=int)
+    runtimes = np.zeros((n_its+1, n_chains))
     if verbose:
         print("Starting ATT sampling...")
     # create progress bar
@@ -219,6 +223,7 @@ def patt_mcmc(
     pool = mp.Pool(n_chains)
     # run the sampling procedure
     for k in range(1, n_updates):
+        time_b = tm.time() # time before period k
         # prepare arguments for parallelized call
         ys = np.apply_along_axis(alpha_inv, -1, X[s[k-1]-1])
         if hyper_att == None:
@@ -233,11 +238,12 @@ def patt_mcmc(
         X[s[k-1]:s[k]] = np.apply_along_axis(alpha, -1, Y)
         gens = [ret[1] for ret in returns]
         tde_cnts[s[k-1]:s[k]] = np.array([ret[2][1:] for ret in returns]).T
+        runtimes[s[k-1]:s[k]] = np.array([ret[3][1:] for ret in returns]).T
         # update transformation params
         n_sams = s[k] * n_chains
         if cen_mode == "mean" or cov_mode != None:
-            sum_term = np.mean(np.sum(X[s[k-1]:s[k]], axis=0), axis=0)
-            m[k] = (s[k-1] * m[k-1] + sum_term) / s[k]
+            m[k] = m[k-1] + np.mean( np.sum(X[s[k-1]:s[k]] - m[k-1], axis=0), \
+                axis=0) / s[k]
             if cen_mode == "mean":
                 cen_para = m[k]
         if cen_mode == "medi":
@@ -245,14 +251,15 @@ def patt_mcmc(
             z[k] = np.median(X[:s[k]].reshape(-1,d), axis=0)
             cen_para = z[k]
         if cov_mode == "var":
-            p[k] = p[k-1] + np.sum(X[s[k-1]:s[k]]**2, axis=(0,1))
-            dev[k] = np.sqrt(p[k]/(n_sams-1) - n_sams/(n_sams-1) * m[k]**2)
+            q[k] = q[k-1] + np.sum( (X[s[k-1]:s[k]] - m[k-1]) \
+                * (X[s[k-1]:s[k]] - m[k]), axis=(0,1))
+            dev[k] = np.sqrt(q[k] / (n_sams-1))
             cov_para = dev[k]
             inv_cov_para = 1 / dev[k]
         elif cov_mode == "cov":
-            Q[k] = Q[k-1] \
-                + np.einsum("ijk,ijl->kl", X[s[k-1]:s[k]], X[s[k-1]:s[k]])
-            Sig[k] = Q[k]/(n_sams-1) - n_sams/(n_sams-1) * np.outer(m[k], m[k])
+            Q[k] = Q[k-1] + np.einsum("ijk,ijl->kl", X[s[k-1]:s[k]] - m[k-1], \
+                X[s[k-1]:s[k]] - m[k])
+            Sig[k] = Q[k] / (n_sams-1)
             L[k] = alg.cholesky(Sig[k])
             L_inv[k] = alg.inv(L[k])
             cov_para = L[k]
@@ -260,6 +267,13 @@ def patt_mcmc(
         alpha = affine_trf(cen_para, cov_para)
         alpha_inv = inv_affine_trf(cen_para, inv_cov_para)
         log_den_trd = target_trf(log_density, alpha)
+        time_a = tm.time() # time after period k
+        # Augment the base sampler's per-iteration runtime measurements by
+        # PATT's period-wide overhead. To account for the waiting times resul-
+        # ting from the chain synchronization, equalize each chain's cumulative
+        # runtime with the time PATT took to complete the entire period.
+        base_runtimes = np.sum(runtimes[s[k-1]:s[k]], axis=0)
+        runtimes[s[k]-1] += (time_a - time_b) - base_runtimes
         if bar:
             pb.update(s[k]-s[k-1])
     pool.close()
@@ -269,8 +283,10 @@ def patt_mcmc(
     if n_burn > 0:
         ret_dic['burn-in'] = X_b
         ret_dic['tde_cnts_burn'] = tde_cnts_burn
+        ret_dic['runtimes_burn'] = runtimes_burn
     ret_dic['samples'] = X
     ret_dic['tde_cnts'] = tde_cnts
+    ret_dic['runtimes'] = runtimes
     if cen_mode == "mean" or cov_mode != None:
         ret_dic['means'] = m
     if cen_mode == "medi":

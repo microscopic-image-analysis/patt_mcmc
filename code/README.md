@@ -1,11 +1,12 @@
-### Overview of Code Base and Experiments
+### Overview of the Code Base
 
-This directory contains all the source code belonging to the paper.
+This directory contains all the source code belonging to the paper
+"Parallel Affine Transformation Tuning of Markov Chain Monte Carlo".
 
 The experiments presented in the paper, as well as two that were cut for space,
-are each organized as a single Jupyter notebook. To look at them, it should be
-sufficient to have the essential Jupyter packages installed. If one is interes-
-ted in running them, the file
+are each organized as a single Jupyter notebook. To look at them offline, it
+should be sufficient to have the essential Jupyter packages installed. If one is
+interested in running them, the file
 
     requirements.txt
 
@@ -57,6 +58,7 @@ modules. For starters, the following implement the base samplers as single-chain
 methods, naively parallelized versions of them, as well as the methods AdaRWM
 and GESS that were used as competitors for PATT in the paper:
 
+    stan_utils.py
     sampling_utils.py
     standard_sampling_functions_gen.py
     parallel_plain_sampling.py

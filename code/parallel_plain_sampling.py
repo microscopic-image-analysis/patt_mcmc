@@ -26,9 +26,10 @@ def parallel_plain(
                 other arguments log_density, n_its, x_0[i], hyper (if not None),
                 an instance of rnd.Generator and this function's argument bar
                 (in this order!) as its arguments and return the generated
-                samples, the generator in its final state and the array of
-                target density evaluation counts (in this order); other returns
-                after these three are fine
+                samples, the generator in its final state, the array of target
+                density evaluation counts and the array of iteration-wise
+                runtimes (in this order); other returns after these four are
+                permitted but will not be processed
             log_density: log of the target density, must be a function taking
                 a size d np array as input and returning a float representing
                 the value of the log density at the given point; must be pickle-
@@ -53,6 +54,9 @@ def parallel_plain(
             tde_cnts: 2d np array of size (n_chains,n_its+1), where
                 tde_cnts[i,j] is the number of target density evaluations used
                 by the i-th chain in the j-th iteration
+            runtimes: 2d np array of size (n_chains,n_its+1), where
+                runtimes[i,j] is the time the i-th chain took to perform its
+                j-th iteration (in seconds)
     """
     if verbose:
         print("Checking validity of given arguments...")
@@ -88,5 +92,6 @@ def parallel_plain(
         print("Processing returns and terminating...")
     samples = np.transpose(np.array([ret[0] for ret in returns]), axes=(1,0,2))
     tde_cnts = np.array([ret[2] for ret in returns]).T
-    return samples, tde_cnts
+    runtimes = np.array([ret[3] for ret in returns]).T
+    return samples, tde_cnts, runtimes
 
