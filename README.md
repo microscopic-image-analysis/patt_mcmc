@@ -4,10 +4,10 @@ This directory contains all numerical experiments (i.e. data, source code and pl
 
 Philip Schär, Michael Habeck, Daniel Rudolf  
 *Parallel Affine Transformation Tuning of Markov Chain Monte Carlo*  
-Accepted for publication at the 41th International Conference on Machine Learning,  
-arXiv preprint [arXiv:2401.16567](https://arxiv.org/abs/2401.16567), 2024
+Proceedings of the 41st International Conference on Machine Learning,  
+PMLR 235, pp. 43571-43607, 2024  
 
-The directory $\texttt{code}$ contains the entire code base used to run the experiments (consisting of various python modules) as well as the experiments themselves (each consisting of a Jupyter notebook). See the readme therein for details.
+available in the [conference proceedings](https://proceedings.mlr.press/v235/schar24a.html). The directory $\texttt{code}$ contains the entire code base used to run the experiments (consisting of various python modules) as well as the experiments themselves (each consisting of a Jupyter notebook). See the readme therein for details.
 
 The directory $\texttt{data}$ contains the data sets used in the experiments. References for where we obtained these data sets are contained in the experiment notebooks based on them.
 
