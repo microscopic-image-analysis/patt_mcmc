@@ -24,6 +24,7 @@ def geo_shr(log_den_trf, r_old, theta_old, log_t, gen):
     ome_min = ome - 2*np.pi
     ome_max = ome
     theta = theta_old * np.cos(ome) + v * np.sin(ome)
+    theta = theta / alg.norm(theta) # prevents accumulating errors
     tde_cnt = 1
     while log_den_trf(r_old, theta) <= log_t:
         ome = gen.uniform(ome_min, ome_max)
