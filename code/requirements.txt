@@ -1,8 +1,9 @@
-numpy>=1.26.2
-scipy>=1.11.4
-multiprocessing
-pystan>=3.9.0
-tqdm>=4.66.1
-pandas>=2.0.1
-matplotlib>=3.8.1
-seaborn>=0.12.2
+numpy==1.26.2
+scipy==1.11.4
+pystan==3.9.0
+tqdm==4.66.1
+pandas==2.0.1
+matplotlib==3.8.1
+seaborn==0.12.2
+jupyter==1.1.1
+nbclassic==1.3.1
