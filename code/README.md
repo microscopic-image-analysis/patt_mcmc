@@ -4,18 +4,8 @@ This directory contains all the source code belonging to the paper
 "Parallel Affine Transformation Tuning of Markov Chain Monte Carlo".
 
 The experiments presented in the paper, as well as two that were cut for space,
-are each organized as a single Jupyter notebook. To look at them offline, it
-should be sufficient to have the essential Jupyter packages installed. If one is
-interested in running them, the file
-
-    requirements.txt
-
-lists all the python packages required to do so. To have the packages at the
-versions stated therein is likely not strictly necessary, the listed versions
-are merely the ones we happened to have installed.
-
-We now give an overview of the source files and notebooks provided in this
-directory, starting with the latter.
+are each organized as a single Jupyter notebook. Here we give an overview of the
+source files and notebooks provided in this directory, starting with the latter.
 
 Our main experiments, i.e. all those summarized in Section 5 and described in
 detail in Appendix G, are implemented by the following notebooks:
