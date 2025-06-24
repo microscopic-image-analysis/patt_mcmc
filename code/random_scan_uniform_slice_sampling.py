@@ -13,6 +13,7 @@ import numpy as np
 import time as tm
 from sampling_utils import nrange
 from parallel_plain_sampling import parallel_plain
+from threadpoolctl import threadpool_limits
 
 def basis_vector(d, i):
     """Auxiliary function, not to be called by the user"""
@@ -20,6 +21,7 @@ def basis_vector(d, i):
     b[i] = 1.0
     return b
 
+@threadpool_limits.wrap(limits=1) # suppress numpy's automatic parallelization
 def rsuss(log_density, n_its, x_0, w, gen, bar=False):
     """Runs random scan uniform slice sampling, updating the chain's state only 
         in a single coordinate per iteration, for a given number of iterations

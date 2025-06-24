@@ -16,6 +16,7 @@ import time as tm
 import standard_sampling_functions_gen as ssf
 from parallel_plain_sampling import parallel_plain
 from sampling_utils import nrange
+from threadpoolctl import threadpool_limits
 
 def geo_shr(log_den_trf, r_old, theta_old, log_t, gen):
     """Auxiliary function, not to be called by the user"""
@@ -63,6 +64,7 @@ def rad_shr(log_den_trf, r_old, log_t, theta, w, gen):
         tde_cnt += 1
     return r, ldv, tde_cnt
 
+@threadpool_limits.wrap(limits=1) # suppress numpy's automatic parallelization
 def gpss(log_density, n_its, x_0, w, gen, bar=False):
     """Runs Gibbsian polar slice sampling, using shrinkage geodesic slice
         sampling for the direction update and stepping-out and shrinkage

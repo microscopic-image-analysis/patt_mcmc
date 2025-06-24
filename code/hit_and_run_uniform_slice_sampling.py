@@ -14,7 +14,9 @@ import time as tm
 import standard_sampling_functions_gen as ssf
 from sampling_utils import nrange
 from parallel_plain_sampling import parallel_plain
+from threadpoolctl import threadpool_limits
 
+@threadpool_limits.wrap(limits=1) # suppress numpy's automatic parallelization
 def hruss(log_density, n_its, x_0, w, gen, bar=False):
     """Runs hit-and-run uniform slice sampling for a given number of iterations
 

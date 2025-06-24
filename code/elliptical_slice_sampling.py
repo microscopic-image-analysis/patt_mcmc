@@ -29,6 +29,7 @@ import numpy.linalg as alg
 import time as tm
 from sampling_utils import nrange
 from parallel_plain_sampling import parallel_plain
+from threadpoolctl import threadpool_limits
 
 def get_v_sampler(mean, cov, gen):
     """Auxiliary function, not to be called by the user"""
@@ -60,6 +61,7 @@ def ellipse_shrinkage(log_like, mean, x_old, v, log_t, gen):
             ome_max = ome
     return x_prop, ldv_prop, tde_cnt
 
+@threadpool_limits.wrap(limits=1) # suppress numpy's automatic parallelization
 def ess(mean, cov, log_like, n_its, x_0, gen, bar=True):
     """Runs ESS for posterior inference in presence of a Gaussian prior.
 
@@ -119,6 +121,7 @@ def ess(mean, cov, log_like, n_its, x_0, gen, bar=True):
         time_b = time_a
     return X, gen, tde_cnts, runtimes
 
+@threadpool_limits.wrap(limits=1) # suppress numpy's automatic parallelization
 def gp_ess(log_density, mean, cov, n_its, x_0, gen, bar=True):
     """Runs GP-ESS with a given (but a priori arbitrary) artificial Gaussian
         factor.
@@ -184,6 +187,7 @@ def gp_ess(log_density, mean, cov, n_its, x_0, gen, bar=True):
         time_b = time_a
     return X, gen, tde_cnts, runtimes
 
+@threadpool_limits.wrap(limits=1) # suppress numpy's automatic parallelization
 def naive_gp_ess(log_density, n_its, x_0, gen, bar=False):
     """Runs naive GP-ESS (i.e. GP-ESS with the artificial Gaussian factor being
         chosen as the multivariate standard Gaussian), for a given number of

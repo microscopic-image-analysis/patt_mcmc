@@ -15,7 +15,9 @@ import multiprocessing as mp
 import time as tm
 from sampling_utils import nrange
 from parallel_plain_sampling import parallel_plain
+from threadpoolctl import threadpool_limits
 
+@threadpool_limits.wrap(limits=1) # suppress numpy's automatic parallelization
 def rwm(log_density, n_its, x_0, cov, gen, bar=False):
     """Runs the random walk Metropolis algorithm with Gaussian proposal
         distribution
@@ -90,6 +92,7 @@ def rwm(log_density, n_its, x_0, cov, gen, bar=False):
         time_b = time_a
     return X, gen, np.ones(n_its+1), runtimes, ldv
 
+@threadpool_limits.wrap(limits=1) # suppress numpy's automatic parallelization
 def ada_rwm(log_density, n_its, x_0, gen, bar=False):
     """Runs the adaptive random walk Metropolis algorithm proposed in Section 2
         of Roberts & Rosenthal's 2009 paper 'Examples of Adaptive MCMC'.

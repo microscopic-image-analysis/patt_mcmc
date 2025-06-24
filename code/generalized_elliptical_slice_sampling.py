@@ -15,9 +15,9 @@ import scipy.special as sps
 import scipy.optimize as opt
 import multiprocessing as mp
 from tqdm.notebook import tqdm
-
 from elliptical_slice_sampling import ellipse_shrinkage
 from sampling_utils import nrange
+from threadpoolctl import threadpool_limits
 
 # loosely based on github.com/robertnishihara/gess/blob/master/fit_mvstud.py
 def fit_multivariate_t(data, min_df=1e-1, max_df=1e6, tol=1e-6, max_its=500):
@@ -53,6 +53,7 @@ def fit_multivariate_t(data, min_df=1e-1, max_df=1e6, tol=1e-6, max_its=500):
         its += 1
     return df, center, scale
 
+@threadpool_limits.wrap(limits=1) # suppress numpy's automatic parallelization
 def generalized_ess(
         log_density,
         df,

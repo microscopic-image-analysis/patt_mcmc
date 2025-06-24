@@ -29,6 +29,7 @@ Available Functions:
 import numpy as np
 import numpy.linalg as alg
 import multiprocessing as mp
+from threadpoolctl import threadpool_limits
 
 def get_radii(samples):
     """Computes the radii (Euclidean norms) of given samples.
@@ -198,6 +199,7 @@ def mss_list(sam_list):
     """
     return np.array([mss(samples) for samples in sam_list])
 
+@threadpool_limits.wrap(limits=1) # suppress numpy's automatic parallelization
 def iat(vals, maxl=None):
     """Estimates the integrated autocorrelation time of the given values based
         on their empirical autocorrelations and the heuristic stopping criterion
@@ -294,6 +296,7 @@ def iat_multi_chain_list(val_list, maxl=None):
     return np.array([iat_multi_chain(vals, ml) \
                      for vals, ml in zip(val_list, maxl)])
 
+@threadpool_limits.wrap(limits=1) # suppress numpy's automatic parallelization
 def mean_iat(samples, maxl=None):
     """Computes the mean marginal IAT of given samples, i.e. the arithmetic 
         mean of the IATs of the marginal samples for each univariate marginal.
