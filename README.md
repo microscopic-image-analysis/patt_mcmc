@@ -18,27 +18,25 @@ Finally, the directory `plots` contains all plots presented in the paper as well
 
 **Note**: The following guide presupposes working on a relatively up-to-date linux system as well as some familiarity with jupyter.
 
-Open a terminal in the directory you want to clone this repo into, proceed by sequentially executing the following commands in it.  
+Open a terminal in the directory you want to clone this repo into. Proceed by sequentially executing the following commands in it.  
 
 1. Install pyenv:  
     `curl -fsSL https://pyenv.run | bash`
-2. Use pyenv to safely install python 3.11.13 alongside whatever version the system normally uses:  
+2. Use pyenv to safely install python 3.11.13 alongside whatever version the system normally uses and update this version's pip:  
     `pyenv install 3.11.13`
-3. Append your .bashrc by an alias for the new python version and restart the terminal to make the alias available:  
-    `echo 'alias py311=~/.pyenv/versions/3.11.13/bin/python' >> ~/.bashrc`
-    `exec $SHELL`
-4. Create a venv for the PATT experiments, based on the local python 3.11 installation:  
-    `py311 -m venv ~/patt_experiments_venv`
-5. Clone this repo, change directory to its code/ folder:  
+    `~/.pyenv/versions/3.11.13/bin/pip install --upgrade pip`
+3. Create a venv for the PATT experiments, based on the local python 3.11 installation:  
+    `~/.pyenv/versions/3.11.13/bin/python -m venv ~/.venvs/patt_experiments`
+4. Clone this repo and move into its `code/` directory:  
     `git clone git@github.com:microscopic-image-analysis/patt_mcmc.git patt_mcmc`  
     `cd patt_mcmc/code/`
-6. Install the python packages required to run the experiments with the venv's pip:  
-    `~/patt_experiments_venv/bin/pip install -r requirements.txt`
-7. Append your .bashrc by a convenient shortcut for launching the venv's classic jupyter client, restart the terminal again:  
-    `echo 'alias patt_repro_nb=~/patt_experiments_venv/bin/jupyter-nbclassic' >> ~/.bashrc`  
+5. Install the python packages required to run the experiments with the venv's pip:  
+    `~/.venvs/patt_experiments/bin/pip install -r requirements.txt`
+6. Append your .bashrc by a convenient shortcut for launching the venv's classic jupyter client, then restart the terminal to make the alias available:  
+    `echo 'alias patt_experiments_nb=~/.venvs/patt_experiments/bin/jupyter-nbclassic' >> ~/.bashrc`  
     `exec $SHELL`
 
-After completing the above setup once, you can easily navigate and run the experiments by executing  
-    `patt_repro_nb`  
-in the directory `patt_mcmc/code/` to launch the venv's jupyter client.
+After completing the above steps once, you should be able to navigate and run the experiments through jupyter, specifically by executing
+    `patt_experiments_nb`  
+in the directory `patt_mcmc/code/` to launch the `patt_experiments` venv's jupyter client.
 
