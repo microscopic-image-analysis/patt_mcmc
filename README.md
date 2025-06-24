@@ -22,9 +22,8 @@ Open a terminal in the directory you want to clone this repo into. Proceed by se
 
 1. Install pyenv:  
     `curl -fsSL https://pyenv.run | bash`
-2. Use pyenv to safely install python 3.11.13 alongside whatever version the system normally uses and update this version's pip:  
-    `pyenv install 3.11.13`  
-    `~/.pyenv/versions/3.11.13/bin/pip install --upgrade pip`
+2. Use pyenv to safely install python 3.11.13 alongside whatever version the system normally uses:  
+    `pyenv install 3.11.13`
 3. Create a venv for the PATT experiments, based on the local python 3.11 installation:  
     `~/.pyenv/versions/3.11.13/bin/python -m venv ~/.venvs/patt_experiments`
 4. Clone this repo and move into its `code/` directory:  
