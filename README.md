@@ -34,8 +34,8 @@ Open a terminal in the directory you want to clone this repo into, proceed by se
     `cd patt_mcmc/code/`
 6. Install the python packages required to run the experiments with the venv's pip:  
     `~/patt_experiments_venv/bin/pip install -r requirements.txt`
-7. Append your .bashrc by a convenient shortcut for launching the venv's classic jupyter client, restart the terminal again:
-    `echo 'alias patt_repro_nb=~/patt_experiments_venv/bin/jupyter-nbclassic' >> ~/.bashrc`
+7. Append your .bashrc by a convenient shortcut for launching the venv's classic jupyter client, restart the terminal again:  
+    `echo 'alias patt_repro_nb=~/patt_experiments_venv/bin/jupyter-nbclassic' >> ~/.bashrc`  
     `exec $SHELL`
 
 After completing the above setup once, you can easily navigate and run the experiments by executing  
