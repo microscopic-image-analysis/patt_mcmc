@@ -16,16 +16,16 @@ Finally, the directory `plots` contains all plots presented in the paper as well
 
 ### Recommended Setup for Reproduction
 
-**Note**: The following guide presupposes working on a relatively up-to-date linux system as well as some familiarity with jupyter.
+**Note**: The following guide presupposes working on a relatively up-to-date linux system.
 
 Open a terminal in the directory you want to clone this repo into. Proceed by sequentially executing the following commands in it.  
 
 1. Install pyenv:  
     `curl -fsSL https://pyenv.run | bash`
-2. Use pyenv to safely install python 3.11.13 alongside whatever version the system normally uses:  
-    `pyenv install 3.11.13`
-3. Create a venv for the PATT experiments, based on the local python 3.11 installation:  
-    `~/.pyenv/versions/3.11.13/bin/python -m venv ~/.venvs/patt_experiments`
+2. Use pyenv to safely install python 3.12.11 alongside whatever version the system normally uses:  
+    `pyenv install 3.12.11`
+3. Create a venv for the PATT experiments, based on the local python 3.12 installation:  
+    `~/.pyenv/versions/3.12.11/bin/python -m venv ~/.venvs/patt_experiments`
 4. Clone this repo and move into its `code/` directory:  
     `git clone git@github.com:microscopic-image-analysis/patt_mcmc.git patt_mcmc`  
     `cd patt_mcmc/code/`
